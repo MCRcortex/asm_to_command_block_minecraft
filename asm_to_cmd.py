@@ -199,7 +199,7 @@ for name in blocks:
         
         if op=="goto":#~ ~ ~ = horizontal, heigt, depth
             pos=get_goto_relitive_pos(c_block,name)
-            c_block.append("/setblock ~%s ~%s ~%s minecraft:air"%(pos[0],pos[1],pos[2]))#set current position start to air block
+            c_block.append("/setblock ~0 ~0 ~%s minecraft:air"%(pos[2]))#set current position start to air block
             if args[0]=="[end]":
                 print("END TAG")
                 c_block.append("GOTOTOTOTO END")
@@ -213,7 +213,7 @@ for name in blocks:
         if op=="jif":
             c_block.append("/scoreboard players set COMPILER_TEMP program 0")
             pos=get_goto_relitive_pos(c_block,name)
-            c_block.append("/execute if score %s program = COMPILER_TEMP program run setblock ~%s ~%s ~%s minecraft:air"%(args[0],pos[0],pos[1],pos[2]))
+            c_block.append("/execute if score %s program = COMPILER_TEMP program run setblock ~0 ~0 ~%s minecraft:air"%(args[0],pos[2]))
             pos=get_goto_relitive_pos(c_block,name)#finds position to 0,0,0
             delta_to_add=get_goto_relitive_pos(c_block,args[1][1:-1])
             pos[0]-=delta_to_add[0]#since there opposit to what we want subtract them
@@ -222,7 +222,7 @@ for name in blocks:
         if op=="jit":
             c_block.append("/scoreboard players set COMPILER_TEMP program 1")
             pos=get_goto_relitive_pos(c_block,name)
-            c_block.append("/execute if score %s program = COMPILER_TEMP program run setblock ~%s ~%s ~%s minecraft:air"%(args[0],pos[0],pos[1],pos[2]))
+            c_block.append("/execute if score %s program = COMPILER_TEMP program run setblock ~0 ~0 ~%s minecraft:air"%(args[0],pos[2]))
             pos=get_goto_relitive_pos(c_block,name)#finds position to 0,0,0
             delta_to_add=get_goto_relitive_pos(c_block,args[1][1:-1])
             pos[0]-=delta_to_add[0]#since there opposit to what we want subtract them
@@ -245,7 +245,7 @@ class command_block:
     def __init__(self,position,command,type="chain",facing="south"):
         self.pos=position
         self.command=command
-        self.type=["chain_command_block","command_block"][type=="normal"]
+        self.type=["chain_command_block","repeating_command_block"][type=="normal"]
         self.facing=facing
     def __repr__(self):
         return str([self.pos,self.facing,self.type,self.command])
