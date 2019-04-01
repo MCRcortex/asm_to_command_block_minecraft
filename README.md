@@ -1,2 +1,2 @@
-# asm_to_command_block_minecraft
+# assembly to command block (minecraft)
 program to convert custom asm code to command blocks
