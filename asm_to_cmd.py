@@ -1,4 +1,4 @@
-precode_=open("ASM.txt").read().split('\n')
+precode_=open("example.txt").read().split('\n')
 precode=[]
 for line in precode_:
     if "#" in line:
@@ -249,10 +249,14 @@ class command_block:
         self.facing=facing
     def __repr__(self):
         return str([self.pos,self.facing,self.type,self.command])
-    def make_generation_command(self):
+    def make_generation_command(self,version="13"):
         auto=['',',auto:1'][self.type=="chain_command_block"]
+        if version=="13":
+            return '/setblock ~%s ~%s ~%s %s[facing=%s]{Command:"%s"%s}'%(self.pos[0],self.pos[1],self.pos[2],self.type,self.facing,self.command,auto)
+        if version=="12":
+            raise Exception("Not compatible with mc 1.12 at the moment")
+            #return '/setblock ~%s ~%s ~%s %s %s replace {Command:"%s"%s}'%(self.pos[0],self.pos[1],self.pos[2],self.type,['3'][not self.facing=="south"],self.command,auto)
         
-        return '/setblock ~%s ~%s ~%s %s[facing=%s]{Command:"%s"%s}'%(self.pos[0],self.pos[1],self.pos[2],self.type,self.facing,self.command,auto)
     
 command_blocks=[]
 for name in compiled_blocks:
@@ -266,7 +270,7 @@ for command in command_blocks:
     generation_commands.append(command.make_generation_command())
 if input("save to output (y/n): ").lower() in ["yes",'y']:
     f=open("compiled_out.txt",'w')
-    f.write('\n'.join(generation_commands))
+    f.write('\n'.join(generation_commands).replace('{C','{{}C').replace('"}','"{}}').replace('1}','1{}}'))#these replacements are for autohotkey auto placer
     f.close()
     print('saved')
 
