@@ -1,0 +1,8 @@
+#Simple [while yolo != 10: yolo++] program
+set yolo 1
+[TEST]
+add yolo 1
+eql tmp yolo 10
+jif tmp [TEST]
+goto [end]
+pass
