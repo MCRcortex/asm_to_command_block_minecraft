@@ -108,10 +108,10 @@ def get_goto_relitive_pos(c_block,name):
         anti_depth=-len(c_block)-1
           
         anti_horizontal,anti_height=block_positions_in_grid[name]
-        pos=block_positions_in_grid[name]
-        anti_horizontal+=pos[0]
-        anti_height+=pos[1]
-        return [anti_horizontal,anti_height,anti_depth]
+        #pos=block_positions_in_grid[name]
+        #anti_horizontal-=pos[0]
+        #anti_height-=pos[1]
+        return [-anti_horizontal,-anti_height,-anti_depth]
         
 
 def is_num(thing):
@@ -198,13 +198,16 @@ for name in blocks:
                 c_block.append("/execute if score %s program > COMPILER_TEMP program run scoreboard players set %s program 1"%(variable,args[0]))
         
         if op=="goto":#~ ~ ~ = horizontal, heigt, depth
-            pos=get_goto_relitive_pos(c_block,name)
-            c_block.append("/setblock ~%s ~%s ~%s minecraft:air"%(pos[0],pos[1],pos[2]))#set current position start to air block
+            depth=-len(c_block)-1
+            c_block.append("/setblock ~0 ~%s ~0 minecraft:air"%(depth))#set current position start to air block
             if args[0]=="[end]":
                 print("END TAG")
                 c_block.append("GOTOTOTOTO END")
                 continue
-            pos=get_goto_relitive_pos(c_block,args[0][1:-1])
+            pos=get_goto_relitive_pos(c_block,name)#finds position to 0,0,0
+            delta_to_add=get_goto_relitive_pos(c_block,args[0][1:-1])
+            pos[0]-=delta_to_add[0]#since there opposit to what we want subtract them
+            pos[1]-=delta_to_add[1]
             c_block.append("/setblock ~%s ~%s ~%s minecraft:redstone_block"%(pos[0],pos[1],pos[2]))#set new goto position start to a redstone block
 
         if op=="jif":
@@ -241,7 +244,9 @@ class command_block:
     def __repr__(self):
         return str([self.pos,self.facing,self.type,self.command])
     def make_generation_command(self):
-        return '/setblock ~%s ~%s ~%s %s[facing=%s]{Command:"%s"}'%(self.pos[0],self.pos[1],self.pos[2],self.type,self.facing,self.command)
+        auto=['',',auto:1'][self.type=="chain_command_block"]
+        
+        return '/setblock ~%s ~%s ~%s %s[facing=%s]{Command:"%s"%s}'%(self.pos[0],self.pos[1],self.pos[2],self.type,self.facing,self.command,auto)
     
 command_blocks=[]
 for name in compiled_blocks:
@@ -251,7 +256,13 @@ for name in compiled_blocks:
 
 
 generation_commands=[]
-
+for command in command_blocks:
+    generation_commands.append(command.make_generation_command())
+if input("save to output (y/n): ").lower() in ["yes",'y']:
+    f=open("compiled_out.txt",'w')
+    f.write('\n'.join(generation_commands))
+    f.close()
+    print('saved')
 
 if True:
     input("press enter to simulate program")
