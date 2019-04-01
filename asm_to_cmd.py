@@ -111,7 +111,7 @@ def get_goto_relitive_pos(c_block,name):
         #pos=block_positions_in_grid[name]
         #anti_horizontal-=pos[0]
         #anti_height-=pos[1]
-        return [-anti_horizontal,-anti_height,-anti_depth]
+        return [-anti_horizontal,-anti_height,anti_depth]
         
 
 def is_num(thing):
@@ -198,8 +198,8 @@ for name in blocks:
                 c_block.append("/execute if score %s program > COMPILER_TEMP program run scoreboard players set %s program 1"%(variable,args[0]))
         
         if op=="goto":#~ ~ ~ = horizontal, heigt, depth
-            depth=-len(c_block)-1
-            c_block.append("/setblock ~0 ~%s ~0 minecraft:air"%(depth))#set current position start to air block
+            pos=get_goto_relitive_pos(c_block,name)
+            c_block.append("/setblock ~%s ~%s ~%s minecraft:air"%(pos[0],pos[1],pos[2]))#set current position start to air block
             if args[0]=="[end]":
                 print("END TAG")
                 c_block.append("GOTOTOTOTO END")
@@ -214,13 +214,19 @@ for name in blocks:
             c_block.append("/scoreboard players set COMPILER_TEMP program 0")
             pos=get_goto_relitive_pos(c_block,name)
             c_block.append("/execute if score %s program = COMPILER_TEMP program run setblock ~%s ~%s ~%s minecraft:air"%(args[0],pos[0],pos[1],pos[2]))
-            pos=get_goto_relitive_pos(c_block,args[1][1:-1])
+            pos=get_goto_relitive_pos(c_block,name)#finds position to 0,0,0
+            delta_to_add=get_goto_relitive_pos(c_block,args[1][1:-1])
+            pos[0]-=delta_to_add[0]#since there opposit to what we want subtract them
+            pos[1]-=delta_to_add[1]
             c_block.append("/execute if score %s program = COMPILER_TEMP program run setblock ~%s ~%s ~%s minecraft:redstone_block"%(args[0],pos[0],pos[1],pos[2]))
         if op=="jit":
             c_block.append("/scoreboard players set COMPILER_TEMP program 1")
             pos=get_goto_relitive_pos(c_block,name)
             c_block.append("/execute if score %s program = COMPILER_TEMP program run setblock ~%s ~%s ~%s minecraft:air"%(args[0],pos[0],pos[1],pos[2]))
-            pos=get_goto_relitive_pos(c_block,args[1][1:-1])
+            pos=get_goto_relitive_pos(c_block,name)#finds position to 0,0,0
+            delta_to_add=get_goto_relitive_pos(c_block,args[1][1:-1])
+            pos[0]-=delta_to_add[0]#since there opposit to what we want subtract them
+            pos[1]-=delta_to_add[1]
             c_block.append("/execute if score %s program = COMPILER_TEMP program run setblock ~%s ~%s ~%s minecraft:redstone_block"%(args[0],pos[0],pos[1],pos[2]))
         if op=="POP_FUNCTION_STACK":
             print("NOT IMPLEMENTED")
