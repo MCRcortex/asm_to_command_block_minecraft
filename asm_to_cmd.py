@@ -1,4 +1,17 @@
-precode_=open("example.txt").read().split('\n')
+#NEED TO COMMENT CODE MORE
+
+
+
+
+#MAKE COMPILER ABLE TO COMPLILE TO 1.12
+
+
+
+
+
+
+
+precode_=open("asm_out.txt").read().split('\n')
 precode=[]
 for line in precode_:
     if "#" in line:
@@ -13,6 +26,9 @@ for line in precode_:
     line=line.lstrip(' ').rstrip(' ')
     precode.append(line)
 
+#makes it so program can actually exit
+if precode[-1]!="goto [end]":
+    precode.append("goto [end]")
 
 #CAN PROBOBLY OPTIMISE SOMETHING THANKS TO THE conditional/unconditional option in command blocks
 
@@ -165,9 +181,9 @@ for name in blocks:
         if op=="mod":
             if is_num(args[1]):
                 c_block.append("/scoreboard players set COMPILER_TEMP program %s"%(args[1]))
-                c_block.append("/scoreboard players operation %s program %= COMPILER_TEMP program"%(args[0]))
+                c_block.append("/scoreboard players operation %s program %%= COMPILER_TEMP program"%(args[0]))
             else:
-                c_block.append("/scoreboard players operation %s program %= %s program"%(args[0],args[1]))
+                c_block.append("/scoreboard players operation %s program %%= %s program"%(args[0],args[1]))
 
 
         if op=="swp":
@@ -299,7 +315,7 @@ while True:
     if current_block=="end":
         break
     for line in blocks[current_block]:
-        print(line)
+        #print(line)
         
         if line=="RAW_BLOCK_END" and in_raw_block:
             in_raw_block=False
@@ -332,7 +348,8 @@ while True:
         if line[0]=='mul':
             variables[line[1]]*=parse(line[2])
         if line[0]=='div':
-            variables[line[1]]=int(parse(line[2])/variables[line[1]])
+            variables[line[1]]=int(variables[line[1]]/parse(line[2]))
+            
         if line[0]=='mod':
             variables[line[1]]%=parse(line[2])
             
@@ -357,7 +374,7 @@ while True:
         
 
 
-print(variables)
-
-
+#print(variables)
+#correct out should be 213142736488227
+print(variables[code[-2].split(" ")[1]])
 
