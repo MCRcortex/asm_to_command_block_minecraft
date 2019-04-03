@@ -163,13 +163,13 @@ for name in blocks:
 
         if op=="add":
             if is_num(args[1]):
-                c_block.append("/scoreboard players add %s program %s"%(args[0],args[1]))
+                c_block.append("/scoreboard players %s %s program %d"%("remove" if int(args[1]) < 0 else "add", args[0],abs(int(args[1]))))
             else:
                 c_block.append("/scoreboard players operation %s program += %s program"%(args[0],args[1]))
                 
         if op=="sub":
             if is_num(args[1]):
-                c_block.append("/scoreboard players add %s program %s"%(args[0],str(-int(args[1]))))
+                c_block.append("/scoreboard players %s %s program %d"%("remove" if int(args[1]) >= 0 else "add", args[0],abs(int(args[1]))))
             else:
                 c_block.append("/scoreboard players operation %s program -= %s program"%(args[0],args[1]))
         if op=="mul":
@@ -197,13 +197,26 @@ for name in blocks:
 
         if op=="eql":
             c_block.append("/scoreboard players set %s program 0"%(args[0]))
-            if is_num(args[1]) and is_num(args[2]):
-                c_block.append("/execute if score %s program = %s program run scoreboard players set %s program 1"%(args[1],args[2],args[0]))
-            elif is_num(args[1])^is_num(args[2]):
-                number=[args[2],args[1]][is_num(args[1])]
-                variable=[args[1],args[2]][is_num(args[1])]
-                c_block.append("/scoreboard players set COMPILER_TEMP program %s"%(number))
-                c_block.append("/execute if score %s program = COMPILER_TEMP program run scoreboard players set %s program 1"%(variable,args[0]))
+            if Version == '1.12':
+                c_block.append("/summon armor_stand ~ ~ ~ {Tags:[_tmpEntity]}")
+                if not is_num(args[1]) and not is_num(args[2]):
+                    c_block.append("/scoreboard players operation @e[tag=_tmpEntity] program = %s program"%(args[1]))
+                    c_block.append("/scoreboard players operation @e[tag=_tmpEntity] program -= %s program"%(args[2]))
+                    c_block.append("/execute @e[tag=_tmpEntity,score_program=0,score_program_min=0] ~ ~ ~ scoreboard players set %s program 1"%(args[0]))
+                else:
+                    number=[args[2],args[1]][is_num(args[1])]
+                    variable=[args[1],args[2]][is_num(args[1])]
+                    c_block.append("/scoreboard players operation @e[tag=_tmpEntity] program = %s program"%(variable))
+                    c_block.append("/execute @e[tag=_tmpEntity,score_program=%s,score_program_min=%s] ~ ~ ~ scoreboard players set %s program 1"%(number, number, args[0]))
+                c_block.append("/kill @e[tag=_tmpEntity]")
+            else:
+                if not is_num(args[1]) and not is_num(args[2]):
+                    c_block.append("/execute if score %s program = %s program run scoreboard players set %s program 1"%(args[1],args[2],args[0]))
+                elif is_num(args[1])^is_num(args[2]):
+                    number=[args[2],args[1]][is_num(args[1])]
+                    variable=[args[1],args[2]][is_num(args[1])]
+                    c_block.append("/scoreboard players set COMPILER_TEMP program %s"%(number))
+                    c_block.append("/execute if score %s program = COMPILER_TEMP program run scoreboard players set %s program 1"%(variable,args[0]))
         if op=="lsn":
             op="gtn"
             tmp=args[1]
@@ -211,13 +224,47 @@ for name in blocks:
             args[1]=tmp
         if op=="gtn":
             c_block.append("/scoreboard players set %s program 0"%(args[0]))
-            if is_num(args[1]) and is_num(args[2]):
-                c_block.append("/execute if score %s program > %s program run scoreboard players set %s program 1"%(args[1],args[2],args[0]))
-            elif is_num(args[1])^is_num(args[2]):
-                number=[args[2],args[1]][is_num(args[1])]
-                variable=[args[1],args[2]][is_num(args[1])]
-                c_block.append("/scoreboard players set COMPILER_TEMP program %s"%(number))
-                c_block.append("/execute if score %s program > COMPILER_TEMP program run scoreboard players set %s program 1"%(variable,args[0]))
+            if Version == '1.12':
+                c_block.append("/summon armor_stand ~ ~ ~ {Tags:[_tmpEntity]}")
+                if not is_num(args[1]) and not is_num(args[2]):
+                    # This is more complicated than it first seems because of overflow with subtraction
+                    c_block.append("/summon armor_stand ~ ~ ~ {Tags:[_tmpEntity1]}")
+                    c_block.append("/scoreboard players operation @e[tag=_tmpEntity] program = %s program"%(args[1]))
+                    c_block.append("/scoreboard players operation @e[tag=_tmpEntity1] program = %s program"%(args[2]))
+                    c_block.append(
+                        "/execute @e[tag=_tmpEntity,score_program=-1] ~ ~ ~ execute @e[tag=_tmpEntity1,score_program=-1] ~ ~ ~ "
+                        "scoreboard players operation %s program = %s program" % (args[0], args[1]))
+                    c_block.append(
+                        "/execute @e[tag=_tmpEntity,score_program=-1] ~ ~ ~ execute @e[tag=_tmpEntity1,score_program=-1] ~ ~ ~ "
+                        "scoreboard players operation %s program -= %s program" % (args[0], args[2]))
+                    c_block.append(
+                        "/execute @e[tag=_tmpEntity,score_program_min=0] ~ ~ ~ execute @e[tag=_tmpEntity1,score_program_min=0] ~ ~ ~ "
+                        "scoreboard players operation %s program = %s program" % (args[0], args[1]))
+                    c_block.append(
+                        "/execute @e[tag=_tmpEntity,score_program_min=0] ~ ~ ~ execute @e[tag=_tmpEntity1,score_program_min=0] ~ ~ ~ "
+                        "scoreboard players operation %s program -= %s program" % (args[0], args[2]))
+                    c_block.append(
+                        "/execute @e[tag=_tmpEntity,score_program_min=0] ~ ~ ~ execute @e[tag=_tmpEntity1,score_program=-1] ~ ~ ~ "
+                        "scoreboard players set %s program 1" % (args[0]))
+                    # normalize to 0 or 1
+                    c_block.append("/scoreboard players operation @e[tag=_tmpEntity] program = %s program"%(args[0]))
+                    c_block.append("/execute @e[tag=_tmpEntity,score_program=0] ~ ~ ~ scoreboard players set %s program 0"%(args[0]))
+                    c_block.append("/execute @e[tag=_tmpEntity,score_program_min=1] ~ ~ ~ scoreboard players set %s program 1"%(args[1]))
+                    c_block.append("/kill @e[tag=_tmpEntity1]")
+                elif is_num(args[1]) ^ is_num(args[2]):
+                    number = [args[2], args[1]][is_num(args[1])]
+                    variable = [args[1], args[2]][is_num(args[1])]
+                    c_block.append("/scoreboard players operation @e[tag=_tmpEntity] program = %s program"%(variable))
+                    c_block.append("/execute @e[tag=_tmpEntity,score_program_min=%d] ~ ~ ~ scoreboard players set %s program 1"%(int(number)+1, args[0]))
+                c_block.append("/kill @e[tag=_tmpEntity]")
+            else:
+                if not is_num(args[1]) and not is_num(args[2]):
+                    c_block.append("/execute if score %s program > %s program run scoreboard players set %s program 1"%(args[1],args[2],args[0]))
+                elif is_num(args[1])^is_num(args[2]):
+                    number=[args[2],args[1]][is_num(args[1])]
+                    variable=[args[1],args[2]][is_num(args[1])]
+                    c_block.append("/scoreboard players set COMPILER_TEMP program %s"%(number))
+                    c_block.append("/execute if score %s program > COMPILER_TEMP program run scoreboard players set %s program 1"%(variable,args[0]))
         
         if op=="goto":#~ ~ ~ = horizontal, heigt, depth
             pos=get_goto_relitive_pos(c_block,name)
