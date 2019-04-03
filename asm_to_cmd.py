@@ -138,8 +138,10 @@ blocks["BOOT_PROGRAM"].insert(1,"/scoreboard objectives add program dummy")
 ######__________________add entity if version is for 1.12 to do comparasins with
 
 if Version=='12':
-    blocks["BOOT_PROGRAM"].insert(2,'/kill @e[tag=program_comparason_system]')
-    blocks["BOOT_PROGRAM"].insert(3,'/summon armor_stand ~ ~ ~ {Tags:["program_comparason_system"]}')
+    blocks["BOOT_PROGRAM"].insert(2,'/kill @e[tag=program_comparison_system]')
+    blocks["BOOT_PROGRAM"].insert(3,'/summon armor_stand ~ ~ ~ {Tags:["program_comparison_system"]}')
+    blocks["BOOT_PROGRAM"].insert(4,'/kill @e[tag=program_comparison_system1]')
+    blocks["BOOT_PROGRAM"].insert(5,'/summon armor_stand ~ ~ ~ {Tags:["program_comparison_system1"]}')
 
 
 
@@ -186,13 +188,13 @@ for name in blocks:
 
         elif op=="add":
             if is_num(args[1]):
-                c_block.append("/scoreboard players add %s program %s"%(args[0],args[1]))
+                c_block.append("/scoreboard players %s %s program %d"%("remove" if int(args[1]) < 0 else "add", args[0],abs(int(args[1]))))
             else:
                 c_block.append("/scoreboard players operation %s program += %s program"%(args[0],args[1]))
                 
         elif op=="sub":
             if is_num(args[1]):
-                c_block.append("/scoreboard players add %s program %s"%(args[0],str(-int(args[1]))))
+                c_block.append("/scoreboard players %s %s program %d"%("remove" if int(args[1]) >= 0 else "add", args[0],abs(int(args[1]))))
             else:
                 c_block.append("/scoreboard players operation %s program -= %s program"%(args[0],args[1]))
         elif op=="mul":
@@ -218,44 +220,70 @@ for name in blocks:
         elif op=="swp":
             c_block.append("/scoreboard players operation %s program >< %s program"%(args[0],args[1]))
 
-        elif op=="eql":
-            if Version=='13': 
-                c_block.append("/scoreboard players set %s program 0"%(args[0]))
-                if not (is_num(args[1]) and is_num(args[2])):
+        if op=="eql":
+            c_block.append("/scoreboard players set %s program 0"%(args[0]))
+            if Version == '12':
+                if not is_num(args[1]) and not is_num(args[2]):
+                    c_block.append("/scoreboard players operation @e[tag=program_comparison_system] program = %s program"%(args[1]))
+                    c_block.append("/scoreboard players operation @e[tag=program_comparison_system] program -= %s program"%(args[2]))
+                    c_block.append("/execute @e[tag=program_comparison_system,score_program=0,score_program_min=0] ~ ~ ~ scoreboard players set %s program 1"%(args[0]))
+                else:
+                    number=[args[2],args[1]][is_num(args[1])]
+                    variable=[args[1],args[2]][is_num(args[1])]
+                    c_block.append("/scoreboard players operation @e[tag=program_comparison_system] program = %s program"%(variable))
+                    c_block.append("/execute @e[tag=program_comparison_system,score_program=%s,score_program_min=%s] ~ ~ ~ scoreboard players set %s program 1"%(number, number, args[0]))
+            elif Version == '13':
+                if not is_num(args[1]) and not is_num(args[2]):
                     c_block.append("/execute if score %s program = %s program run scoreboard players set %s program 1"%(args[1],args[2],args[0]))
                 elif is_num(args[1])^is_num(args[2]):
                     number=[args[2],args[1]][is_num(args[1])]
                     variable=[args[1],args[2]][is_num(args[1])]
                     c_block.append("/scoreboard players set COMPILER_TEMP program %s"%(number))
                     c_block.append("/execute if score %s program = COMPILER_TEMP program run scoreboard players set %s program 1"%(variable,args[0]))
-            if Version=='12':
-                if is_num(args[1])^is_num(args[2]):
-                    number=[args[2],args[1]][is_num(args[1])]
-                    variable=[args[1],args[2]][is_num(args[1])]
-                    c_block.append("/scoreboard players set %s program 0"%(args[0]))
-                    c_block.append("/scoreboard players operation @e[tag=program_comparason_system,limit=1] program = %s program"%(variable))
-                    c_block.append("/execute @e[tag=program_comparason_system,score_program=   %s   ,score_program_min=  %s  ,limit=1] ~ ~ ~ scoreboard players set %s program 1"%(number,number,args[0]))
-                else:
-                    raise Exception("Equal op code not vaild for 1.12 at the moment. At the moment 1 argument must be a variable and the other a static number (sorry)")
-                
-        elif op=="lsn":
+        if op=="lsn":
             op="gtn"
             tmp=args[1]
             args[2]=args[1]
             args[1]=tmp
-        elif op=="gtn":
-            if Version=='13':#check if actually works
-                c_block.append("/scoreboard players set %s program 0"%(args[0]))
-                if not (is_num(args[1]) and is_num(args[2])):
+        if op=="gtn":
+            c_block.append("/scoreboard players set %s program 0"%(args[0]))
+            if Version == '12':
+                if not is_num(args[1]) and not is_num(args[2]):
+                    # This is more complicated than it first seems because of overflow with subtraction
+                    c_block.append("/scoreboard players operation @e[tag=program_comparison_system] program = %s program"%(args[1]))
+                    c_block.append("/scoreboard players operation @e[tag=program_comparison_system1] program = %s program"%(args[2]))
+                    c_block.append(
+                        "/execute @e[tag=program_comparison_system,score_program=-1] ~ ~ ~ execute @e[tag=program_comparison_system1,score_program=-1] ~ ~ ~ "
+                        "scoreboard players operation %s program = %s program" % (args[0], args[1]))
+                    c_block.append(
+                        "/execute @e[tag=program_comparison_system,score_program=-1] ~ ~ ~ execute @e[tag=program_comparison_system1,score_program=-1] ~ ~ ~ "
+                        "scoreboard players operation %s program -= %s program" % (args[0], args[2]))
+                    c_block.append(
+                        "/execute @e[tag=program_comparison_system,score_program_min=0] ~ ~ ~ execute @e[tag=program_comparison_system1,score_program_min=0] ~ ~ ~ "
+                        "scoreboard players operation %s program = %s program" % (args[0], args[1]))
+                    c_block.append(
+                        "/execute @e[tag=program_comparison_system,score_program_min=0] ~ ~ ~ execute @e[tag=program_comparison_system1,score_program_min=0] ~ ~ ~ "
+                        "scoreboard players operation %s program -= %s program" % (args[0], args[2]))
+                    c_block.append(
+                        "/execute @e[tag=program_comparison_system,score_program_min=0] ~ ~ ~ execute @e[tag=program_comparison_system1,score_program=-1] ~ ~ ~ "
+                        "scoreboard players set %s program 1" % (args[0]))
+                    # normalize to 0 or 1
+                    c_block.append("/scoreboard players operation @e[tag=program_comparison_system] program = %s program"%(args[0]))
+                    c_block.append("/execute @e[tag=program_comparison_system,score_program=0] ~ ~ ~ scoreboard players set %s program 0"%(args[0]))
+                    c_block.append("/execute @e[tag=program_comparison_system,score_program_min=1] ~ ~ ~ scoreboard players set %s program 1"%(args[1]))
+                elif is_num(args[1]) ^ is_num(args[2]):
+                    number = [args[2], args[1]][is_num(args[1])]
+                    variable = [args[1], args[2]][is_num(args[1])]
+                    c_block.append("/scoreboard players operation @e[tag=program_comparison_system] program = %s program"%(variable))
+                    c_block.append("/execute @e[tag=program_comparison_system,score_program_min=%d] ~ ~ ~ scoreboard players set %s program 1"%(int(number)+1, args[0]))
+            else:
+                if not is_num(args[1]) and not is_num(args[2]):
                     c_block.append("/execute if score %s program > %s program run scoreboard players set %s program 1"%(args[1],args[2],args[0]))
-                elif is_num(args[1]):
-                    c_block.append("/scoreboard players set COMPILER_TEMP program %s"%(args[1]))
-                    c_block.append("/execute if score %s program > COMPILER_TEMP program run scoreboard players set %s program 1"%(args[2],args[0]))
-                elif is_num(args[2]):
-                    c_block.append("/scoreboard players set COMPILER_TEMP program %s"%(args[2]))
-                    c_block.append("/execute if score %s program > COMPILER_TEMP program run scoreboard players set %s program 1"%(args[1],args[0]))
-            if Version=='12':
-                raise Exception("Not compatible with mc 1.12 at the moment")
+                elif is_num(args[1])^is_num(args[2]):
+                    number=[args[2],args[1]][is_num(args[1])]
+                    variable=[args[1],args[2]][is_num(args[1])]
+                    c_block.append("/scoreboard players set COMPILER_TEMP program %s"%(number))
+                    c_block.append("/execute if score %s program > COMPILER_TEMP program run scoreboard players set %s program 1"%(variable,args[0]))
         
         elif op=="goto":#~ ~ ~ = horizontal, heigt, depth
             pos=get_goto_relitive_pos(c_block,name)
@@ -282,18 +310,18 @@ for name in blocks:
                 c_block.append("/execute if score %s program = COMPILER_TEMP program run setblock ~%s ~%s ~%s minecraft:redstone_block"%(args[0],pos[0],pos[1],pos[2]))
 
             if Version=='12':
-                
+
                 c_block.append("/scoreboard players operation @e[tag=program_comparason_system,limit=1] program = %s program"%(args[0]))
                 pos=get_goto_relitive_pos(c_block,name)
                 c_block.append("/execute @e[tag=program_comparason_system,score_program=   0   ,score_program_min=  0  ,limit=1] ~ ~ ~ setblock ~0 ~0 ~%s air"%(pos[2]))
-                
+
                 pos=get_goto_relitive_pos(c_block,name)#finds position to 0,0,0
                 delta_to_add=get_goto_relitive_pos(c_block,args[1][1:-1])
                 pos[0]-=delta_to_add[0]#since there opposit to what we want subtract them
                 pos[1]-=delta_to_add[1]
                 c_block.append("/execute @e[tag=program_comparason_system,score_program=   0   ,score_program_min=  0  ,limit=1] ~ ~ ~ setblock ~%s ~%s ~%s redstone_block"%(pos[0],pos[1],pos[2]))
-                
-            
+
+
         elif op=="jit":
             if Version=='13':
                 c_block.append("/scoreboard players set COMPILER_TEMP program 1")
@@ -304,20 +332,20 @@ for name in blocks:
                 pos[0]-=delta_to_add[0]#since there opposit to what we want subtract them
                 pos[1]-=delta_to_add[1]
                 c_block.append("/execute if score %s program = COMPILER_TEMP program run setblock ~%s ~%s ~%s minecraft:redstone_block"%(args[0],pos[0],pos[1],pos[2]))
-                
+
             if Version=='12':
-                
+
                 c_block.append("/scoreboard players operation @e[tag=program_comparason_system,limit=1] program = %s program"%(args[0]))
                 pos=get_goto_relitive_pos(c_block,name)
                 c_block.append("/execute @e[tag=program_comparason_system,score_program=   1   ,score_program_min=  1  ,limit=1] ~ ~ ~ setblock ~0 ~0 ~%s air"%(pos[2]))
-                
+
                 pos=get_goto_relitive_pos(c_block,name)#finds position to 0,0,0
                 delta_to_add=get_goto_relitive_pos(c_block,args[1][1:-1])
                 pos[0]-=delta_to_add[0]#since there opposit to what we want subtract them
                 pos[1]-=delta_to_add[1]
                 c_block.append("/execute @e[tag=program_comparason_system,score_program=   1   ,score_program_min=  1  ,limit=1] ~ ~ ~ setblock ~%s ~%s ~%s redstone_block"%(pos[0],pos[1],pos[2]))
-              
-            
+
+
         elif op=="POP_FUNCTION_STACK":
             print("NOT IMPLEMENTED")
         elif op=="PUSH_RET_GOTO":
