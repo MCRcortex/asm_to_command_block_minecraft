@@ -247,7 +247,7 @@ for name in blocks:
             args[1]=tmp
         if op=="gtn":
             c_block.append("/scoreboard players set %s program 0"%(args[0]))
-            if Version == '1.12':
+            if Version == '12':
                 if not is_num(args[1]) and not is_num(args[2]):
                     # This is more complicated than it first seems because of overflow with subtraction
                     c_block.append("/scoreboard players operation @e[tag=program_comparison_system] program = %s program"%(args[1]))
