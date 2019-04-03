@@ -8,7 +8,7 @@
 
 
 
-Version='1.12'
+Version='12'
 
 
 precode_=open("asm_out.txt").read().split('\n')
@@ -95,11 +95,15 @@ for index,line in enumerate(precode):
      
 
 
-    
-    
-    
-    
+
+
+
+
+
 ######_______________________ PUTS CODE INTO BLOCKS (each block is a goto location)___________________________
+
+
+
 grid_x_width=30
 
 
@@ -116,6 +120,9 @@ for index,line in enumerate(code):
 
 
 ######_______________________COMPUTE POSSITION FOR EACH BLOCK IN MINECRAFT TERMS___________________________
+
+
+
 block_positions_in_grid=OrderedDict({})
 for index,name in enumerate(blocks.keys()):
     block_positions_in_grid[name]=[index%grid_x_width,int(index/grid_x_width)]
@@ -123,8 +130,24 @@ for index,name in enumerate(blocks.keys()):
 
 
 
+#####_____ adds bootstrap code
+blocks["BOOT_PROGRAM"].extend(["/scoreboard objectives remove program","/scoreboard objectives add program dummy"])
+
+
+######__________________add entity if version is for 1.12 to do comparasins with
+
+if Version=='12':
+    blocks["BOOT_PROGRAM"].append('/kill @e[tag=program_comparason_system]')
+    blocks["BOOT_PROGRAM"].append('/summon armor_stand ~ ~ ~ {Tags:["program_comparason_system"]}')
+
+
+
+
+
+
 
 ######_______________________ COMPILES ASM INTO MINECRAFT COMMAND BLOCKS___________________________
+
 
 def get_goto_relitive_pos(c_block,name):
         anti_depth=-len(c_block)-1
@@ -144,7 +167,6 @@ def is_num(thing):
         return False
 
 #reset program commands
-#["/scoreboard objectives remove program","/scoreboard objectives add program dummy"]
 #compiler to cmd blocks
 compiled_blocks=OrderedDict({})
 for name in blocks:
@@ -197,27 +219,32 @@ for name in blocks:
 
         if op=="eql":
             c_block.append("/scoreboard players set %s program 0"%(args[0]))
-            if is_num(args[1]) and is_num(args[2]):
+            if not (is_num(args[1]) and is_num(args[2])):
                 c_block.append("/execute if score %s program = %s program run scoreboard players set %s program 1"%(args[1],args[2],args[0]))
             elif is_num(args[1])^is_num(args[2]):
                 number=[args[2],args[1]][is_num(args[1])]
                 variable=[args[1],args[2]][is_num(args[1])]
                 c_block.append("/scoreboard players set COMPILER_TEMP program %s"%(number))
                 c_block.append("/execute if score %s program = COMPILER_TEMP program run scoreboard players set %s program 1"%(variable,args[0]))
+                
         if op=="lsn":
             op="gtn"
             tmp=args[1]
             args[2]=args[1]
             args[1]=tmp
         if op=="gtn":
-            c_block.append("/scoreboard players set %s program 0"%(args[0]))
-            if is_num(args[1]) and is_num(args[2]):
-                c_block.append("/execute if score %s program > %s program run scoreboard players set %s program 1"%(args[1],args[2],args[0]))
-            elif is_num(args[1])^is_num(args[2]):
-                number=[args[2],args[1]][is_num(args[1])]
-                variable=[args[1],args[2]][is_num(args[1])]
-                c_block.append("/scoreboard players set COMPILER_TEMP program %s"%(number))
-                c_block.append("/execute if score %s program > COMPILER_TEMP program run scoreboard players set %s program 1"%(variable,args[0]))
+            if Version=='13':
+                c_block.append("/scoreboard players set %s program 0"%(args[0]))
+                if not (is_num(args[1]) and is_num(args[2])):
+                    c_block.append("/execute if score %s program > %s program run scoreboard players set %s program 1"%(args[1],args[2],args[0]))
+                elif is_num(args[1]):
+                    c_block.append("/scoreboard players set COMPILER_TEMP program %s"%(args[1]))
+                    c_block.append("/execute if score %s program > COMPILER_TEMP program run scoreboard players set %s program 1"%(args[2],args[0]))
+                elif is_num(args[2]):
+                    c_block.append("/scoreboard players set COMPILER_TEMP program %s"%(args[2]))
+                    c_block.append("/execute if score %s program > COMPILER_TEMP program run scoreboard players set %s program 1"%(args[1],args[0]))
+            if Version=='12':
+                raise Exception("Not compatible with mc 1.12 at the moment")
         
         if op=="goto":#~ ~ ~ = horizontal, heigt, depth
             pos=get_goto_relitive_pos(c_block,name)
@@ -233,23 +260,33 @@ for name in blocks:
             c_block.append("/setblock ~%s ~%s ~%s minecraft:redstone_block"%(pos[0],pos[1],pos[2]))#set new goto position start to a redstone block
 
         if op=="jif":
-            c_block.append("/scoreboard players set COMPILER_TEMP program 0")
-            pos=get_goto_relitive_pos(c_block,name)
-            c_block.append("/execute if score %s program = COMPILER_TEMP program run setblock ~0 ~0 ~%s minecraft:air"%(args[0],pos[2]))
-            pos=get_goto_relitive_pos(c_block,name)#finds position to 0,0,0
-            delta_to_add=get_goto_relitive_pos(c_block,args[1][1:-1])
-            pos[0]-=delta_to_add[0]#since there opposit to what we want subtract them
-            pos[1]-=delta_to_add[1]
-            c_block.append("/execute if score %s program = COMPILER_TEMP program run setblock ~%s ~%s ~%s minecraft:redstone_block"%(args[0],pos[0],pos[1],pos[2]))
+            if Version=='13':
+                c_block.append("/scoreboard players set COMPILER_TEMP program 0")
+                pos=get_goto_relitive_pos(c_block,name)
+                c_block.append("/execute if score %s program = COMPILER_TEMP program run setblock ~0 ~0 ~%s minecraft:air"%(args[0],pos[2]))
+                pos=get_goto_relitive_pos(c_block,name)#finds position to 0,0,0
+                delta_to_add=get_goto_relitive_pos(c_block,args[1][1:-1])
+                pos[0]-=delta_to_add[0]#since there opposit to what we want subtract them
+                pos[1]-=delta_to_add[1]
+                c_block.append("/execute if score %s program = COMPILER_TEMP program run setblock ~%s ~%s ~%s minecraft:redstone_block"%(args[0],pos[0],pos[1],pos[2]))
+            if Version=='12':
+                
+                raise Exception("Not compatible with mc 1.12 at the moment")
+            
         if op=="jit":
-            c_block.append("/scoreboard players set COMPILER_TEMP program 1")
-            pos=get_goto_relitive_pos(c_block,name)
-            c_block.append("/execute if score %s program = COMPILER_TEMP program run setblock ~0 ~0 ~%s minecraft:air"%(args[0],pos[2]))
-            pos=get_goto_relitive_pos(c_block,name)#finds position to 0,0,0
-            delta_to_add=get_goto_relitive_pos(c_block,args[1][1:-1])
-            pos[0]-=delta_to_add[0]#since there opposit to what we want subtract them
-            pos[1]-=delta_to_add[1]
-            c_block.append("/execute if score %s program = COMPILER_TEMP program run setblock ~%s ~%s ~%s minecraft:redstone_block"%(args[0],pos[0],pos[1],pos[2]))
+            if Version=='13':
+                c_block.append("/scoreboard players set COMPILER_TEMP program 1")
+                pos=get_goto_relitive_pos(c_block,name)
+                c_block.append("/execute if score %s program = COMPILER_TEMP program run setblock ~0 ~0 ~%s minecraft:air"%(args[0],pos[2]))
+                pos=get_goto_relitive_pos(c_block,name)#finds position to 0,0,0
+                delta_to_add=get_goto_relitive_pos(c_block,args[1][1:-1])
+                pos[0]-=delta_to_add[0]#since there opposit to what we want subtract them
+                pos[1]-=delta_to_add[1]
+                c_block.append("/execute if score %s program = COMPILER_TEMP program run setblock ~%s ~%s ~%s minecraft:redstone_block"%(args[0],pos[0],pos[1],pos[2]))
+            if Version=='12':
+                
+                raise Exception("Not compatible with mc 1.12 at the moment")
+            
         if op=="POP_FUNCTION_STACK":
             print("NOT IMPLEMENTED")
         if op=="PUSH_RET_GOTO":
@@ -261,7 +298,13 @@ for name in blocks:
 
 
 
+
+
+
 ######_______________________ Puts all commands into command block objects___________________________
+
+
+
 
 class command_block:
     def __init__(self,position,command,type="chain",facing="south"):
@@ -277,7 +320,7 @@ class command_block:
             return '/setblock ~%s ~%s ~%s %s[facing=%s]{Command:"%s"%s}'%(self.pos[0],self.pos[1],self.pos[2],self.type,self.facing,self.command,auto)
         if version=="12":
             raise Exception("Not compatible with mc 1.12 at the moment")
-            #return '/setblock ~%s ~%s ~%s %s %s replace {Command:"%s"%s}'%(self.pos[0],self.pos[1],self.pos[2],self.type,['3'][not self.facing=="south"],self.command,auto)
+            return '/setblock ~%s ~%s ~%s %s %s replace {Command:"%s"%s}'%(self.pos[0],self.pos[1],self.pos[2],self.type,['3'][not self.facing=="south"],self.command,auto)
         
     
 command_blocks=[]
@@ -286,10 +329,13 @@ for name in compiled_blocks:
     for depth,command in enumerate(compiled_blocks[name]):
         command_blocks.append(command_block([x_offset,y_offset,depth],command,["chain","normal"][depth==0]))
 
+
+
 ######_______________________ Generate generation code___________________________
+
 generation_commands=[]
 for command in command_blocks:
-    generation_commands.append(command.make_generation_command())
+    generation_commands.append(command.make_generation_command(Version))
 if input("save to output (y/n): ").lower() in ["yes",'y']:
     f=open("compiled_out.txt",'w')
     f.write('\n'.join(generation_commands).replace('{C','{{}C').replace('"}','"{}}').replace('1}','1{}}'))#these replacements are for autohotkey auto placer
