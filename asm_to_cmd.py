@@ -8,7 +8,7 @@
 
 
 
-
+Version='1.12'
 
 
 precode_=open("asm_out.txt").read().split('\n')
@@ -315,7 +315,7 @@ while True:
     if current_block=="end":
         break
     for line in blocks[current_block]:
-        #print(line)
+        print(line)
         
         if line=="RAW_BLOCK_END" and in_raw_block:
             in_raw_block=False
