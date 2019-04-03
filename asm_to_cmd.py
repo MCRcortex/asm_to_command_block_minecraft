@@ -65,7 +65,7 @@ if precode[-1]!="goto [end]":
 
 #cannot use the variable name COMPILER_TEMP
 
-
+######_______________________ PRE PROCESSER OF COMMANDS (makes things possible)___________________________
 
 block_endings=["POP_FUNCTION_STACK","goto","jif","jit"]
 
@@ -95,7 +95,11 @@ for index,line in enumerate(precode):
      
 
 
-
+    
+    
+    
+    
+######_______________________ PUTS CODE INTO BLOCKS (each block is a goto location)___________________________
 grid_x_width=30
 
 
@@ -111,6 +115,7 @@ for index,line in enumerate(code):
         blocks[current_block].append(line)
 
 
+######_______________________COMPUTE POSSITION FOR EACH BLOCK IN MINECRAFT TERMS___________________________
 block_positions_in_grid=OrderedDict({})
 for index,name in enumerate(blocks.keys()):
     block_positions_in_grid[name]=[index%grid_x_width,int(index/grid_x_width)]
@@ -119,6 +124,7 @@ for index,name in enumerate(blocks.keys()):
 
 
 
+######_______________________ COMPILES ASM INTO MINECRAFT COMMAND BLOCKS___________________________
 
 def get_goto_relitive_pos(c_block,name):
         anti_depth=-len(c_block)-1
@@ -255,7 +261,7 @@ for name in blocks:
 
 
 
-
+######_______________________ Puts all commands into command block objects___________________________
 
 class command_block:
     def __init__(self,position,command,type="chain",facing="south"):
@@ -280,7 +286,7 @@ for name in compiled_blocks:
     for depth,command in enumerate(compiled_blocks[name]):
         command_blocks.append(command_block([x_offset,y_offset,depth],command,["chain","normal"][depth==0]))
 
-
+######_______________________ Generate generation code___________________________
 generation_commands=[]
 for command in command_blocks:
     generation_commands.append(command.make_generation_command())
