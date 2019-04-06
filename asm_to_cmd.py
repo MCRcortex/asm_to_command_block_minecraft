@@ -11,7 +11,7 @@
 Version='12'
 
 
-precode_=open("ASM.txt").read().split('\n')
+precode_=open("asm_out.txt").read().split('\n')
 precode=[]
 for line in precode_:
     if "#" in line:
@@ -139,9 +139,9 @@ blocks["BOOT_PROGRAM"].insert(1,"/scoreboard objectives add program dummy")
 
 if Version=='12':
     blocks["BOOT_PROGRAM"].insert(2,'/kill @e[tag=program_comparison_system]')
-    blocks["BOOT_PROGRAM"].insert(3,'/summon armor_stand ~ ~ ~ {Tags:["program_comparison_system"]}')
+    blocks["BOOT_PROGRAM"].insert(3,'/summon armor_stand ~ ~ ~-4 {Tags:["program_comparison_system"],NoGravity:1b}')
     blocks["BOOT_PROGRAM"].insert(4,'/kill @e[tag=program_comparison_system1]')
-    blocks["BOOT_PROGRAM"].insert(5,'/summon armor_stand ~ ~ ~ {Tags:["program_comparison_system1"]}')
+    blocks["BOOT_PROGRAM"].insert(5,'/summon armor_stand ~ ~ ~-6 {Tags:["program_comparison_system1"],NoGravity:1b}')
 
 
 
@@ -220,7 +220,7 @@ for name in blocks:
         elif op=="swp":
             c_block.append("/scoreboard players operation %s program >< %s program"%(args[0],args[1]))
 
-        if op=="eql":
+        elif op=="eql":
             c_block.append("/scoreboard players set %s program 0"%(args[0]))
             if Version == '12':
                 if not is_num(args[1]) and not is_num(args[2]):
@@ -240,12 +240,12 @@ for name in blocks:
                     variable=[args[1],args[2]][is_num(args[1])]
                     c_block.append("/scoreboard players set COMPILER_TEMP program %s"%(number))
                     c_block.append("/execute if score %s program = COMPILER_TEMP program run scoreboard players set %s program 1"%(variable,args[0]))
-        if op=="lsn":
+        elif op=="lsn":
             op="gtn"
             tmp=args[1]
             args[2]=args[1]
             args[1]=tmp
-        if op=="gtn":
+        elif op=="gtn":
             c_block.append("/scoreboard players set %s program 0"%(args[0]))
             if Version == '12':
                 if not is_num(args[1]) and not is_num(args[2]):
@@ -302,8 +302,9 @@ for name in blocks:
             if Version=='13':
                 c_block.append("/scoreboard players set COMPILER_TEMP program 0")
                 pos=get_goto_relitive_pos(c_block,name)
-                c_block.append("/execute if score %s program = COMPILER_TEMP program run setblock ~0 ~0 ~%s minecraft:air"%(args[0],pos[2]))
-                pos=get_goto_relitive_pos(c_block,name)#finds position to 0,0,0
+                c_block.append("/execute if score %s program = COMPILER_TEMP program run setblock ~%s ~%s ~0 minecraft:air"%(args[0],pos[0],pos[1]))
+        
+                pos=get_goto_relitive_pos(c_block,args[1][1:-1])
                 delta_to_add=get_goto_relitive_pos(c_block,args[1][1:-1])
                 pos[0]-=delta_to_add[0]#since there opposit to what we want subtract them
                 pos[1]-=delta_to_add[1]
@@ -311,15 +312,12 @@ for name in blocks:
 
             if Version=='12':
 
-                c_block.append("/scoreboard players operation @e[tag=program_comparason_system,limit=1] program = %s program"%(args[0]))
+                c_block.append("/scoreboard players operation @e[tag=program_comparison_system] program = %s program"%(args[0]))
                 pos=get_goto_relitive_pos(c_block,name)
-                c_block.append("/execute @e[tag=program_comparason_system,score_program=   0   ,score_program_min=  0  ,limit=1] ~ ~ ~ setblock ~0 ~0 ~%s air"%(pos[2]))
+                c_block.append("/execute @e[tag=program_comparison_system,score_program=0,score_program_min=0] ~ ~ ~ setblock ~%s ~%s ~0 air"%(-pos[0],-pos[1]))
 
-                pos=get_goto_relitive_pos(c_block,name)#finds position to 0,0,0
-                delta_to_add=get_goto_relitive_pos(c_block,args[1][1:-1])
-                pos[0]-=delta_to_add[0]#since there opposit to what we want subtract them
-                pos[1]-=delta_to_add[1]
-                c_block.append("/execute @e[tag=program_comparason_system,score_program=   0   ,score_program_min=  0  ,limit=1] ~ ~ ~ setblock ~%s ~%s ~%s redstone_block"%(pos[0],pos[1],pos[2]))
+                pos=get_goto_relitive_pos(c_block,args[1][1:-1])#finds position to 0,0,0
+                c_block.append("/execute @e[tag=program_comparison_system,score_program=0,score_program_min=0] ~ ~ ~ setblock ~%s ~%s ~0 redstone_block"%(-pos[0],-pos[1]))
 
 
         elif op=="jit":
@@ -335,15 +333,12 @@ for name in blocks:
 
             if Version=='12':
 
-                c_block.append("/scoreboard players operation @e[tag=program_comparason_system,limit=1] program = %s program"%(args[0]))
+                c_block.append("/scoreboard players operation @e[tag=program_comparison_system] program = %s program"%(args[0]))
                 pos=get_goto_relitive_pos(c_block,name)
-                c_block.append("/execute @e[tag=program_comparason_system,score_program=   1   ,score_program_min=  1  ,limit=1] ~ ~ ~ setblock ~0 ~0 ~%s air"%(pos[2]))
+                c_block.append("/execute @e[tag=program_comparison_system,score_program=1,score_program_min=1] ~ ~ ~ setblock ~%s ~%s ~0 air"%(-pos[0],-pos[1]))
 
-                pos=get_goto_relitive_pos(c_block,name)#finds position to 0,0,0
-                delta_to_add=get_goto_relitive_pos(c_block,args[1][1:-1])
-                pos[0]-=delta_to_add[0]#since there opposit to what we want subtract them
-                pos[1]-=delta_to_add[1]
-                c_block.append("/execute @e[tag=program_comparason_system,score_program=   1   ,score_program_min=  1  ,limit=1] ~ ~ ~ setblock ~%s ~%s ~%s redstone_block"%(pos[0],pos[1],pos[2]))
+                pos=get_goto_relitive_pos(c_block,args[1][1:-1])#finds position to 0,0,0
+                c_block.append("/execute @e[tag=program_comparison_system,score_program=1,score_program_min=1] ~ ~ ~ setblock ~%s ~%s ~0 redstone_block"%(-pos[0],-pos[1]))
 
 
         elif op=="POP_FUNCTION_STACK":
@@ -351,7 +346,7 @@ for name in blocks:
         elif op=="PUSH_RET_GOTO":
             print("NOT IMPLEMENTED")
         else:#VERIFY IS AN ACTUALL COMMAND
-            print("Pushing non recognised opcode onto current block")
+            print("Pushing non recognised opcode onto current block",line)
             c_block.append(line)
 
 
@@ -378,11 +373,11 @@ class command_block:
     def make_generation_command(self,version="13"):
         auto=['',',auto:1'][self.type=="chain_command_block"]
         if version=="13":
-            return '/setblock ~%s ~%s ~%s %s[facing=%s]{Command:"%s"%s}'%(self.pos[0],self.pos[1],self.pos[2],self.type,self.facing,self.command,auto)
+            return '/setblock ~%s ~%s ~%s %s[facing=%s]{Command:"%s"%s}'%(self.pos[0],self.pos[1],self.pos[2],self.type,self.facing,self.command.replace('"','\\"'),auto)
         if version=="12":
             #raise Exception("Not compatible with mc 1.12 at the moment")
             print("1.12 compiling is currently very experimental and should not be trusted")
-            return '/setblock ~%s ~%s ~%s %s %s replace {Command:"%s"%s}'%(self.pos[0],self.pos[1],self.pos[2],self.type,['3'][not self.facing=="south"],self.command,auto)
+            return '/setblock ~%s ~%s ~%s %s %s replace {Command:"%s"%s}'%(self.pos[0],self.pos[1],self.pos[2],self.type,['3'][not self.facing=="south"],self.command.replace('"','\\"'),auto)
         
     
 command_blocks=[]
@@ -400,7 +395,7 @@ for command in command_blocks:
     generation_commands.append(command.make_generation_command(Version))
 if input("save to output (y/n): ").lower() in ["yes",'y']:
     f=open("compiled_out.txt",'w')
-    f.write('\n'.join(generation_commands).replace('{C','{{}C').replace('"}','"{}}').replace('1}','1{}}'))#these replacements are for autohotkey auto placer
+    f.write('\n'.join(generation_commands).replace('}',"SUPER_DUPER_RANDOMNESS_RGLJKFDBHSGBHKLSGJRBNKLFGNFSGN:nhlsdfhp9h[").replace('{','{{}').replace('SUPER_DUPER_RANDOMNESS_RGLJKFDBHSGBHKLSGJRBNKLFGNFSGN:nhlsdfhp9h[','{}}'))#these replacements are for autohotkey auto placer
     f.close()
     print('saved')
 
@@ -491,4 +486,3 @@ while True:
 #print(variables)
 #correct out should be 213142736488227
 print(variables[code[-2].split(" ")[1]])
-
